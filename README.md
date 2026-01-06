@@ -29,14 +29,14 @@ Build the project in release mode:
 cargo build --release
 ```
 
-The binary will be available at `./target/release/dhcp-mk01`
+The binary will be available at `./target/release/ks-dhcpmon`
 
 ## Usage
 
 Run the server with sudo (required to bind to port 67):
 
 ```bash
-sudo ./target/release/dhcp-mk01
+sudo ./target/release/ks-dhcpmon
 ```
 
 The server will:
@@ -124,4 +124,8 @@ Each line in `request.json` contains a complete JSON object:
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2025 Jeff Buddington (https://www.linkedin.com/in/jeff-buddington-5178ba4)
+
+**Attribution Requirement:** Any use, redistribution, or incorporation of this Software must include clear attribution to Jeff Buddington.
