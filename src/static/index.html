@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHCP Monitor - Real-time Dashboard</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DHCP Monitor Dashboard</h1>
+            <div class="connection-status" id="status">
+                <span class="indicator" id="indicator"></span>
+                <span id="status-text">Connecting...</span>
+            </div>
+        </header>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Requests</div>
+                <div class="stat-value" id="total-requests">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Unique MACs</div>
+                <div class="stat-value" id="unique-macs">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Requests/Minute</div>
+                <div class="stat-value" id="req-per-min">0.0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Uptime</div>
+                <div class="stat-value" id="uptime">0s</div>
+            </div>
+        </div>
+
+        <!-- Message Type Distribution -->
+        <div class="chart-container">
+            <h2>Message Types</h2>
+            <div id="message-types" class="type-distribution"></div>
+        </div>
+
+        <!-- Search/Filter Controls -->
+        <div class="controls">
+            <input type="text" id="filter-mac" placeholder="Filter by MAC address">
+            <input type="text" id="filter-vendor" placeholder="Filter by Vendor Class">
+            <select id="filter-type">
+                <option value="">All Message Types</option>
+                <option value="DISCOVER">DISCOVER</option>
+                <option value="REQUEST">REQUEST</option>
+                <option value="DECLINE">DECLINE</option>
+                <option value="RELEASE">RELEASE</option>
+                <option value="INFORM">INFORM</option>
+                <option value="ACK">ACK</option>
+                <option value="NAK">NAK</option>
+            </select>
+            <button id="btn-clear-filters">Clear Filters</button>
+            <button id="btn-pause">Pause</button>
+        </div>
+
+        <!-- Live Request Table -->
+        <div class="table-container">
+            <h2>Live DHCP Requests <span id="request-count">(0)</span></h2>
+            <table id="requests-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>MAC Address</th>
+                        <th>Source IP</th>
+                        <th>Message Type</th>
+                        <th>Vendor Class</th>
+                        <th>XID</th>
+                        <th>Fingerprint</th>
+                    </tr>
+                </thead>
+                <tbody id="requests-body">
+                    <!-- Rows inserted by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

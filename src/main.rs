@@ -1,5 +1,6 @@
 mod dhcp;
 mod logger;
+mod web;
 
 use anyhow::Result;
 use dhcp::{DhcpPacket, DhcpRequest};
@@ -8,6 +9,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::UdpSocket;
 use tracing::{error, info, warn};
+use web::state::{AppState, WEB_SERVER_PORT};
 
 const DHCP_SERVER_PORT: u16 = 67;
 const BUFFER_SIZE: usize = 4096;
@@ -21,13 +23,33 @@ async fn main() -> Result<()> {
         .with_level(true)
         .init();
 
-    info!("Starting DHCP listener on port {}", DHCP_SERVER_PORT);
+    info!("Starting DHCP Monitor with Web UI");
 
     // Create the logger
     let logger = Arc::new(RequestLogger::new("request.json")?);
     info!("Logging requests to request.json");
 
-    // Bind to DHCP server port
+    // Create shared application state
+    let app_state = Arc::new(AppState::new(logger));
+
+    // Spawn UDP listener task
+    let udp_state = app_state.clone();
+    tokio::spawn(async move {
+        if let Err(e) = run_udp_listener(udp_state).await {
+            error!("UDP listener error: {}", e);
+        }
+    });
+
+    // Run web server (blocks on main thread)
+    info!("Starting web server on port {}", WEB_SERVER_PORT);
+    web::server::run_server(app_state, WEB_SERVER_PORT).await?;
+
+    Ok(())
+}
+
+async fn run_udp_listener(state: Arc<AppState>) -> Result<()> {
+    info!("Starting DHCP listener on port {}", DHCP_SERVER_PORT);
+
     let socket = UdpSocket::bind(format!("0.0.0.0:{}", DHCP_SERVER_PORT)).await?;
     info!("Listening for DHCP requests on 0.0.0.0:{}", DHCP_SERVER_PORT);
 
@@ -37,11 +59,11 @@ async fn main() -> Result<()> {
         match socket.recv_from(&mut buffer).await {
             Ok((len, source)) => {
                 let data = buffer[..len].to_vec();
-                let logger = Arc::clone(&logger);
+                let state = state.clone();
 
                 // Spawn a task to handle the request
                 tokio::spawn(async move {
-                    if let Err(e) = handle_dhcp_request(data, source, logger).await {
+                    if let Err(e) = handle_dhcp_request(data, source, state).await {
                         error!("Error handling DHCP request: {}", e);
                     }
                 });
@@ -56,7 +78,7 @@ async fn main() -> Result<()> {
 async fn handle_dhcp_request(
     data: Vec<u8>,
     source: SocketAddr,
-    logger: Arc<RequestLogger>,
+    state: Arc<AppState>,
 ) -> Result<()> {
     // Parse the DHCP packet
     let packet = match DhcpPacket::parse(&data) {
@@ -151,12 +173,8 @@ async fn handle_dhcp_request(
         println!("{}", serde_json::to_string_pretty(&options_json)?);
     }
 
-    // Log the request to JSON file
-    if let Err(e) = logger.log(&request) {
-        error!("Failed to log request: {}", e);
-    } else {
-        info!("Request logged to request.json");
-    }
+    // Process request through state manager (handles logging, broadcasting, stats)
+    state.process_request(request).await?;
 
     Ok(())
 }

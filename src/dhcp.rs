@@ -155,7 +155,7 @@ impl DhcpPacket {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DhcpRequest {
     pub timestamp: String,
     pub source_ip: String,
