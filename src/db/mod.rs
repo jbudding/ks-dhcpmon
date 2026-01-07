@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS dhcp_requests (
     os_name TEXT,
     device_class TEXT,
     raw_options TEXT NOT NULL,
+    detection_method TEXT,
+    confidence REAL,
+    smb_dialect TEXT,
+    smb_build INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

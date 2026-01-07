@@ -3,18 +3,79 @@ mod logger;
 mod web;
 mod db;
 mod fingerprint;
+mod smb;
+mod hybrid_detection;
 
 use anyhow::Result;
 use dhcp::{DhcpPacket, DhcpRequest};
 use logger::RequestLogger;
+use hybrid_detection::{HybridDetector, HybridConfig};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::UdpSocket;
 use tracing::{error, info, warn};
 use web::state::{AppState, WEB_SERVER_PORT};
+use serde::Deserialize;
 
 const DHCP_SERVER_PORT: u16 = 67;
 const BUFFER_SIZE: usize = 4096;
+
+#[derive(Debug, Deserialize)]
+struct Config {
+    #[serde(default)]
+    detection: DetectionConfig,
+}
+
+#[derive(Debug, Deserialize)]
+struct DetectionConfig {
+    #[serde(default = "default_true")]
+    enable_hybrid: bool,
+    #[serde(default = "default_true")]
+    enable_smb_probing: bool,
+    #[serde(default = "default_smb_timeout")]
+    smb_timeout_secs: u64,
+    #[serde(default = "default_confidence_threshold")]
+    smb_probe_confidence_threshold: f32,
+    #[serde(default = "default_cache_ttl")]
+    smb_cache_ttl_secs: u64,
+}
+
+fn default_true() -> bool { true }
+fn default_smb_timeout() -> u64 { 3 }
+fn default_confidence_threshold() -> f32 { 0.8 }
+fn default_cache_ttl() -> u64 { 3600 }
+
+impl Default for DetectionConfig {
+    fn default() -> Self {
+        Self {
+            enable_hybrid: true,
+            enable_smb_probing: true,
+            smb_timeout_secs: 3,
+            smb_probe_confidence_threshold: 0.8,
+            smb_cache_ttl_secs: 3600,
+        }
+    }
+}
+
+/// Load configuration from config.toml or use defaults
+fn load_config() -> Config {
+    match std::fs::read_to_string("config.toml") {
+        Ok(content) => match toml::from_str(&content) {
+            Ok(config) => {
+                info!("Loaded configuration from config.toml");
+                config
+            }
+            Err(e) => {
+                warn!("Failed to parse config.toml: {}, using defaults", e);
+                Config { detection: DetectionConfig::default() }
+            }
+        },
+        Err(_) => {
+            info!("No config.toml found, using default configuration");
+            Config { detection: DetectionConfig::default() }
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -25,7 +86,25 @@ async fn main() -> Result<()> {
         .with_level(true)
         .init();
 
-    info!("Starting DHCP Monitor with Web UI");
+    info!("Starting DHCP Monitor with Web UI and Hybrid Detection");
+
+    // Load configuration
+    let config = load_config();
+    info!("Hybrid detection: {}", if config.detection.enable_hybrid { "enabled" } else { "disabled" });
+    info!("SMB probing: {}", if config.detection.enable_smb_probing { "enabled" } else { "disabled" });
+
+    // Create hybrid detector
+    let hybrid_config = HybridConfig {
+        enable_smb_probing: config.detection.enable_smb_probing,
+        smb_timeout_secs: config.detection.smb_timeout_secs,
+        smb_probe_confidence_threshold: config.detection.smb_probe_confidence_threshold,
+        smb_cache_ttl_secs: config.detection.smb_cache_ttl_secs,
+    };
+    let hybrid_detector = Arc::new(HybridDetector::new(hybrid_config));
+    info!("Hybrid detector initialized (SMB timeout: {}s, confidence threshold: {:.0}%)",
+        config.detection.smb_timeout_secs,
+        config.detection.smb_probe_confidence_threshold * 100.0
+    );
 
     // Create the logger
     let logger = Arc::new(RequestLogger::new("request.json")?);
@@ -36,7 +115,7 @@ async fn main() -> Result<()> {
     info!("Database initialized at dhcp_monitor.db");
 
     // Create shared application state
-    let app_state = Arc::new(AppState::new(logger, db_pool));
+    let app_state = Arc::new(AppState::new(logger, db_pool, hybrid_detector));
 
     // Spawn UDP listener task
     let udp_state = app_state.clone();

@@ -1,5 +1,6 @@
 use crate::dhcp::DhcpRequest;
 use crate::logger::RequestLogger;
+use crate::hybrid_detection::HybridDetector;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use ringbuf::{HeapRb, Rb};
@@ -58,12 +59,15 @@ pub struct AppState {
     // Set of unique MAC addresses (for stats)
     pub unique_macs: Arc<RwLock<HashSet<String>>>,
 
+    // Hybrid detector for OS detection
+    pub hybrid_detector: Arc<HybridDetector>,
+
     // Application start time
     pub start_time: DateTime<Utc>,
 }
 
 impl AppState {
-    pub fn new(logger: Arc<RequestLogger>, db_pool: SqlitePool) -> Self {
+    pub fn new(logger: Arc<RequestLogger>, db_pool: SqlitePool, hybrid_detector: Arc<HybridDetector>) -> Self {
         let (broadcast_tx, _) = broadcast::channel(BROADCAST_CHANNEL_SIZE);
 
         Self {
@@ -73,12 +77,29 @@ impl AppState {
             history: Arc::new(RwLock::new(HeapRb::new(HISTORY_BUFFER_SIZE))),
             stats: Arc::new(RwLock::new(Statistics::default())),
             unique_macs: Arc::new(RwLock::new(HashSet::new())),
+            hybrid_detector,
             start_time: Utc::now(),
         }
     }
 
     // Process a new DHCP request (called from UDP handler)
-    pub async fn process_request(&self, request: DhcpRequest) -> anyhow::Result<()> {
+    pub async fn process_request(&self, mut request: DhcpRequest) -> anyhow::Result<()> {
+        // 0. Run hybrid detection to enhance OS detection
+        let detection_result = self.hybrid_detector.detect(
+            &request.mac_address,
+            &request.source_ip,
+            &request.fingerprint,
+            request.vendor_class.as_deref()
+        ).await;
+
+        // Update request with hybrid detection results
+        request.os_name = Some(detection_result.os_name);
+        request.device_class = Some(detection_result.device_class);
+        request.detection_method = Some(detection_result.detection_method);
+        request.confidence = Some(detection_result.confidence);
+        request.smb_dialect = detection_result.smb_dialect;
+        request.smb_build = detection_result.smb_build;
+
         let request_arc = Arc::new(request);
 
         // 1. Log to file (existing functionality)

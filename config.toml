@@ -1,0 +1,18 @@
+# ks-DHCPmon Configuration File
+
+[detection]
+# Enable hybrid detection (DHCP + SMB probing)
+enable_hybrid = true
+
+# Enable SMB probing as fallback when DHCP confidence is low
+enable_smb_probing = true
+
+# SMB probe timeout in seconds
+smb_timeout_secs = 3
+
+# Only probe via SMB when DHCP confidence is below this threshold (0.0-1.0)
+# 0.8 = 80% confidence
+smb_probe_confidence_threshold = 0.8
+
+# Cache SMB probe results for this many seconds
+smb_cache_ttl_secs = 3600

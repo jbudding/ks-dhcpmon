@@ -1,0 +1,13 @@
+# MAC Address to OS Mapping
+# Use this file to explicitly map MAC addresses to operating systems
+# when DHCP fingerprinting alone cannot distinguish between OS versions
+
+[mappings]
+# Windows 11 devices
+"bc:24:11:42:fc:dc" = { os_name = "Windows 11", device_class = "Desktop/Laptop", vendor = "Microsoft" }
+
+# Windows 10 devices
+"4a:53:b5:90:15:22" = { os_name = "Windows 10", device_class = "Desktop/Laptop", vendor = "Microsoft" }
+
+# Add more mappings as needed
+# "aa:bb:cc:dd:ee:ff" = { os_name = "OS Name", device_class = "Device Type", vendor = "Vendor" }

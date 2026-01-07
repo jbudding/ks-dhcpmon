@@ -168,6 +168,10 @@ pub struct DhcpRequest {
     pub os_name: Option<String>,
     pub device_class: Option<String>,
     pub raw_options: Vec<DhcpOption>,
+    pub detection_method: Option<String>,
+    pub confidence: Option<f32>,
+    pub smb_dialect: Option<String>,
+    pub smb_build: Option<u32>,
 }
 
 impl DhcpRequest {
@@ -184,10 +188,11 @@ impl DhcpRequest {
         }.to_string();
 
         let fingerprint = packet.get_fingerprint();
+        let mac_address = packet.get_mac_address();
 
-        // Lookup OS information from fingerprint
+        // Lookup OS information from MAC mapping and fingerprint
         let (os_name, device_class) = if !fingerprint.is_empty() {
-            if let Some(os_info) = crate::fingerprint::lookup_fingerprint(&fingerprint) {
+            if let Some(os_info) = crate::fingerprint::lookup_os(&mac_address, &fingerprint) {
                 (Some(os_info.os_name.to_string()), Some(os_info.device_class.to_string()))
             } else {
                 (None, None)
@@ -200,7 +205,7 @@ impl DhcpRequest {
             timestamp: chrono::Utc::now().to_rfc3339(),
             source_ip,
             source_port,
-            mac_address: packet.get_mac_address(),
+            mac_address,
             message_type,
             xid: format!("{:08x}", packet.xid),
             fingerprint,
@@ -208,6 +213,10 @@ impl DhcpRequest {
             os_name,
             device_class,
             raw_options: packet.options.clone(),
+            detection_method: None,
+            confidence: None,
+            smb_dialect: None,
+            smb_build: None,
         }
     }
 }
