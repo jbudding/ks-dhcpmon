@@ -1,8 +1,9 @@
 pub mod models;
 pub mod queries;
 
-use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 use tracing::info;
+use std::str::FromStr;
 
 const SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS dhcp_requests (
@@ -28,10 +29,14 @@ CREATE INDEX IF NOT EXISTS idx_created_at ON dhcp_requests(created_at);
 pub async fn create_pool(database_url: &str) -> Result<SqlitePool, sqlx::Error> {
     info!("Initializing database at {}", database_url);
 
-    // Create connection pool
+    // Parse connection options and enable database file creation
+    let connect_options = SqliteConnectOptions::from_str(database_url)?
+        .create_if_missing(true);
+
+    // Create connection pool with options
     let pool = SqlitePoolOptions::new()
         .max_connections(10)
-        .connect(database_url)
+        .connect_with(connect_options)
         .await?;
 
     // Run migrations (create table and indexes)
