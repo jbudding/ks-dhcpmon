@@ -165,6 +165,8 @@ pub struct DhcpRequest {
     pub xid: String,
     pub fingerprint: String,
     pub vendor_class: Option<String>,
+    pub os_name: Option<String>,
+    pub device_class: Option<String>,
     pub raw_options: Vec<DhcpOption>,
 }
 
@@ -181,6 +183,19 @@ impl DhcpRequest {
             _ => "UNKNOWN",
         }.to_string();
 
+        let fingerprint = packet.get_fingerprint();
+
+        // Lookup OS information from fingerprint
+        let (os_name, device_class) = if !fingerprint.is_empty() {
+            if let Some(os_info) = crate::fingerprint::lookup_fingerprint(&fingerprint) {
+                (Some(os_info.os_name.to_string()), Some(os_info.device_class.to_string()))
+            } else {
+                (None, None)
+            }
+        } else {
+            (None, None)
+        };
+
         DhcpRequest {
             timestamp: chrono::Utc::now().to_rfc3339(),
             source_ip,
@@ -188,8 +203,10 @@ impl DhcpRequest {
             mac_address: packet.get_mac_address(),
             message_type,
             xid: format!("{:08x}", packet.xid),
-            fingerprint: packet.get_fingerprint(),
+            fingerprint,
             vendor_class: packet.get_vendor_class(),
+            os_name,
+            device_class,
             raw_options: packet.options.clone(),
         }
     }

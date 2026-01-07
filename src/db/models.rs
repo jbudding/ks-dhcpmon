@@ -12,6 +12,8 @@ pub struct DbDhcpRequest {
     pub xid: String,
     pub fingerprint: String,
     pub vendor_class: Option<String>,
+    pub os_name: Option<String>,
+    pub device_class: Option<String>,
     pub raw_options: String,
     pub created_at: String,
 }
@@ -30,6 +32,8 @@ impl From<DbDhcpRequest> for DhcpRequest {
             xid: db_req.xid,
             fingerprint: db_req.fingerprint,
             vendor_class: db_req.vendor_class,
+            os_name: db_req.os_name,
+            device_class: db_req.device_class,
             raw_options,
         }
     }
