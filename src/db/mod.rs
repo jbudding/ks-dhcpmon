@@ -16,8 +16,6 @@ CREATE TABLE IF NOT EXISTS dhcp_requests (
     xid TEXT NOT NULL,
     fingerprint TEXT NOT NULL,
     vendor_class TEXT,
-    os_name TEXT,
-    device_class TEXT,
     raw_options TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -26,7 +24,6 @@ CREATE INDEX IF NOT EXISTS idx_timestamp ON dhcp_requests(timestamp);
 CREATE INDEX IF NOT EXISTS idx_mac_address ON dhcp_requests(mac_address);
 CREATE INDEX IF NOT EXISTS idx_message_type ON dhcp_requests(message_type);
 CREATE INDEX IF NOT EXISTS idx_created_at ON dhcp_requests(created_at);
-CREATE INDEX IF NOT EXISTS idx_os_name ON dhcp_requests(os_name);
 "#;
 
 pub async fn create_pool(database_url: &str) -> Result<SqlitePool, sqlx::Error> {

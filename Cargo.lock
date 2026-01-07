@@ -845,13 +845,12 @@ dependencies = [
 
 [[package]]
 name = "ks-dhcpmon"
-version = "0.3.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "axum",
  "chrono",
  "futures",
- "once_cell",
  "ringbuf",
  "serde",
  "serde_json",

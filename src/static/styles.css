@@ -274,17 +274,6 @@ tbody tr:hover {
     color: #a78bfa;
 }
 
-.os-info {
-    color: #34d399;
-    font-weight: 500;
-}
-
-.device-class {
-    color: #94a3b8;
-    font-size: 0.85em;
-    font-weight: normal;
-}
-
 .badge {
     display: inline-block;
     padding: 4px 12px;

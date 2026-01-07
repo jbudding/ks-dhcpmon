@@ -42,8 +42,8 @@ pub async fn insert_request(pool: &SqlitePool, request: &DhcpRequest) -> Result<
         r#"
         INSERT INTO dhcp_requests (
             timestamp, source_ip, source_port, mac_address, message_type,
-            xid, fingerprint, vendor_class, os_name, device_class, raw_options
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            xid, fingerprint, vendor_class, raw_options
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         "#
     )
     .bind(&request.timestamp)
@@ -54,8 +54,6 @@ pub async fn insert_request(pool: &SqlitePool, request: &DhcpRequest) -> Result<
     .bind(&request.xid)
     .bind(&request.fingerprint)
     .bind(&request.vendor_class)
-    .bind(&request.os_name)
-    .bind(&request.device_class)
     .bind(&raw_options_json)
     .execute(pool)
     .await?;
