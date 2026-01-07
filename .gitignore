@@ -19,3 +19,8 @@ Thumbs.db
 
 # Log files
 request.json
+
+# Database files
+dhcp_monitor.db
+dhcp_monitor.db-shm
+dhcp_monitor.db-wal

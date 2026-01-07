@@ -37,6 +37,24 @@ h2 {
     color: #94a3b8;
 }
 
+.header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-link {
+    color: #38bdf8;
+    text-decoration: none;
+    font-size: 0.95em;
+    transition: color 0.2s;
+}
+
+.nav-link:hover {
+    color: #0ea5e9;
+    text-decoration: underline;
+}
+
 .connection-status {
     display: flex;
     align-items: center;

@@ -26,6 +26,16 @@ pub async fn run_server(state: Arc<AppState>, port: u16) -> anyhow::Result<()> {
         .route("/app.js", get(handlers::serve_js))
         .route("/styles.css", get(handlers::serve_css))
 
+        // Historical logs page
+        .route("/logs", get(handlers::serve_logs_page))
+        .route("/logs.js", get(handlers::serve_logs_js))
+        .route("/logs.css", get(handlers::serve_logs_css))
+
+        // Historical logs API endpoints
+        .route("/api/logs", get(handlers::get_logs))
+        .route("/api/logs/count", get(handlers::get_logs_count))
+        .route("/api/logs/export", get(handlers::export_logs))
+
         // Add application state
         .with_state(state)
 

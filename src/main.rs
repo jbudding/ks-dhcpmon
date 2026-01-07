@@ -1,6 +1,7 @@
 mod dhcp;
 mod logger;
 mod web;
+mod db;
 
 use anyhow::Result;
 use dhcp::{DhcpPacket, DhcpRequest};
@@ -29,8 +30,12 @@ async fn main() -> Result<()> {
     let logger = Arc::new(RequestLogger::new("request.json")?);
     info!("Logging requests to request.json");
 
+    // Create database pool
+    let db_pool = db::create_pool("sqlite:dhcp_monitor.db").await?;
+    info!("Database initialized at dhcp_monitor.db");
+
     // Create shared application state
-    let app_state = Arc::new(AppState::new(logger));
+    let app_state = Arc::new(AppState::new(logger, db_pool));
 
     // Spawn UDP listener task
     let udp_state = app_state.clone();

@@ -155,3 +155,160 @@ async fn handle_websocket(socket: WebSocket, state: Arc<AppState>) {
 
     info!("WebSocket client disconnected");
 }
+
+// Serve historical logs page
+pub async fn serve_logs_page() -> Html<&'static str> {
+    Html(include_str!("../static/logs.html"))
+}
+
+// Serve logs JavaScript
+pub async fn serve_logs_js() -> impl IntoResponse {
+    (
+        [("content-type", "application/javascript")],
+        include_str!("../static/logs.js"),
+    )
+}
+
+// Serve logs CSS
+pub async fn serve_logs_css() -> impl IntoResponse {
+    (
+        [("content-type", "text/css")],
+        include_str!("../static/logs.css"),
+    )
+}
+
+// Query parameters for logs
+#[derive(Deserialize)]
+pub struct LogsQuery {
+    mac_address: Option<String>,
+    vendor_class: Option<String>,
+    message_type: Option<String>,
+    xid: Option<String>,
+    start_date: Option<String>,
+    end_date: Option<String>,
+    sort_by: Option<String>,
+    sort_order: Option<String>,
+    page: Option<i64>,
+    page_size: Option<i64>,
+}
+
+// Response for count
+#[derive(serde::Serialize)]
+pub struct CountResponse {
+    count: i64,
+}
+
+// Get logs with filters and pagination
+pub async fn get_logs(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<LogsQuery>,
+) -> Json<Vec<crate::dhcp::DhcpRequest>> {
+    let filters = crate::db::queries::QueryFilters {
+        mac_address: params.mac_address,
+        vendor_class: params.vendor_class,
+        message_type: params.message_type,
+        xid: params.xid,
+        start_date: params.start_date,
+        end_date: params.end_date,
+        sort_by: params.sort_by.unwrap_or_else(|| "timestamp".to_string()),
+        sort_order: params.sort_order.unwrap_or_else(|| "DESC".to_string()),
+        page: params.page.unwrap_or(1),
+        page_size: params.page_size.unwrap_or(100).min(500),
+    };
+
+    match crate::db::queries::query_requests(&state.db_pool, &filters).await {
+        Ok(requests) => Json(requests),
+        Err(e) => {
+            error!("Database query error: {}", e);
+            Json(vec![])
+        }
+    }
+}
+
+// Get count of logs matching filters
+pub async fn get_logs_count(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<LogsQuery>,
+) -> Json<CountResponse> {
+    let filters = crate::db::queries::QueryFilters {
+        mac_address: params.mac_address,
+        vendor_class: params.vendor_class,
+        message_type: params.message_type,
+        xid: params.xid,
+        start_date: params.start_date,
+        end_date: params.end_date,
+        sort_by: "timestamp".to_string(),
+        sort_order: "DESC".to_string(),
+        page: 1,
+        page_size: 1,
+    };
+
+    let count = crate::db::queries::count_requests(&state.db_pool, &filters)
+        .await
+        .unwrap_or(0);
+
+    Json(CountResponse { count })
+}
+
+// Export logs
+#[derive(Deserialize)]
+pub struct ExportQuery {
+    format: String,
+    mac_address: Option<String>,
+    vendor_class: Option<String>,
+    message_type: Option<String>,
+    xid: Option<String>,
+    start_date: Option<String>,
+    end_date: Option<String>,
+}
+
+pub async fn export_logs(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<ExportQuery>,
+) -> impl IntoResponse {
+    let filters = crate::db::queries::QueryFilters {
+        mac_address: params.mac_address,
+        vendor_class: params.vendor_class,
+        message_type: params.message_type,
+        xid: params.xid,
+        start_date: params.start_date,
+        end_date: params.end_date,
+        sort_by: "timestamp".to_string(),
+        sort_order: "DESC".to_string(),
+        page: 1,
+        page_size: 100000,
+    };
+
+    match crate::db::queries::export_requests(&state.db_pool, &filters, &params.format).await {
+        Ok(data) => {
+            let content_type = if params.format == "csv" {
+                "text/csv"
+            } else {
+                "application/json"
+            };
+
+            let filename = format!(
+                "dhcp_logs_{}.{}",
+                chrono::Utc::now().format("%Y%m%d_%H%M%S"),
+                params.format
+            );
+
+            (
+                [
+                    ("content-type", content_type),
+                    ("content-disposition", &format!("attachment; filename=\"{}\"", filename)),
+                ],
+                data,
+            )
+                .into_response()
+        }
+        Err(e) => {
+            error!("Export error: {}", e);
+            (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Export failed",
+            )
+                .into_response()
+        }
+    }
+}

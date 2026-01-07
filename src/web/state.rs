@@ -5,6 +5,7 @@ use tokio::sync::{broadcast, RwLock};
 use ringbuf::{HeapRb, Rb};
 use chrono::{DateTime, Utc};
 use std::collections::{HashMap, HashSet};
+use sqlx::SqlitePool;
 
 // Configuration constants
 pub const HISTORY_BUFFER_SIZE: usize = 1000;
@@ -45,6 +46,9 @@ pub struct AppState {
     // File logger (existing)
     pub logger: Arc<RequestLogger>,
 
+    // Database pool
+    pub db_pool: SqlitePool,
+
     // Circular buffer for recent requests (thread-safe)
     pub history: Arc<RwLock<HeapRb<Arc<DhcpRequest>>>>,
 
@@ -59,12 +63,13 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(logger: Arc<RequestLogger>) -> Self {
+    pub fn new(logger: Arc<RequestLogger>, db_pool: SqlitePool) -> Self {
         let (broadcast_tx, _) = broadcast::channel(BROADCAST_CHANNEL_SIZE);
 
         Self {
             broadcast_tx,
             logger,
+            db_pool,
             history: Arc::new(RwLock::new(HeapRb::new(HISTORY_BUFFER_SIZE))),
             stats: Arc::new(RwLock::new(Statistics::default())),
             unique_macs: Arc::new(RwLock::new(HashSet::new())),
@@ -81,16 +86,21 @@ impl AppState {
             tracing::error!("Failed to log request: {}", e);
         }
 
-        // 2. Add to history buffer
+        // 2. Insert to database
+        if let Err(e) = crate::db::queries::insert_request(&self.db_pool, &request_arc).await {
+            tracing::error!("Failed to insert to database: {}", e);
+        }
+
+        // 3. Add to history buffer
         {
             let mut history = self.history.write().await;
             history.push_overwrite(request_arc.clone());
         }
 
-        // 3. Update statistics
+        // 4. Update statistics
         self.update_statistics(&request_arc).await;
 
-        // 4. Broadcast to WebSocket clients (don't wait for receivers)
+        // 5. Broadcast to WebSocket clients (don't wait for receivers)
         let _ = self.broadcast_tx.send(request_arc);
 
         Ok(())

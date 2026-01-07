@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHCP Monitor - Historical Logs</title>
+    <link rel="stylesheet" href="/logs.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>Historical DHCP Logs</h1>
+                <a href="/" class="back-link">← Back to Live Monitor</a>
+            </div>
+        </header>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h2>Filters</h2>
+            <div class="filter-grid">
+                <div class="filter-item">
+                    <label>Start Date</label>
+                    <input type="datetime-local" id="start-date" />
+                </div>
+                <div class="filter-item">
+                    <label>End Date</label>
+                    <input type="datetime-local" id="end-date" />
+                </div>
+                <div class="filter-item">
+                    <label>MAC Address</label>
+                    <input type="text" id="filter-mac" placeholder="aa:bb:cc:dd:ee:ff" />
+                </div>
+                <div class="filter-item">
+                    <label>Vendor Class</label>
+                    <input type="text" id="filter-vendor" placeholder="e.g., MSFT" />
+                </div>
+                <div class="filter-item">
+                    <label>Message Type</label>
+                    <select id="filter-type">
+                        <option value="">All Types</option>
+                        <option value="DISCOVER">DISCOVER</option>
+                        <option value="REQUEST">REQUEST</option>
+                        <option value="DECLINE">DECLINE</option>
+                        <option value="RELEASE">RELEASE</option>
+                        <option value="INFORM">INFORM</option>
+                        <option value="ACK">ACK</option>
+                        <option value="NAK">NAK</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>XID</label>
+                    <input type="text" id="filter-xid" placeholder="Transaction ID" />
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button id="btn-apply-filters" class="btn-primary">Apply Filters</button>
+                <button id="btn-clear-filters" class="btn-secondary">Clear Filters</button>
+            </div>
+        </div>
+
+        <!-- Export & Info Bar -->
+        <div class="info-bar">
+            <div class="total-records">
+                Total Records: <span id="total-count">0</span>
+            </div>
+            <div class="export-actions">
+                <label>Page Size:</label>
+                <select id="page-size">
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100" selected>100</option>
+                    <option value="500">500</option>
+                </select>
+                <button id="btn-export-csv" class="btn-export">Export CSV</button>
+                <button id="btn-export-json" class="btn-export">Export JSON</button>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="table-container">
+            <table id="logs-table">
+                <thead>
+                    <tr>
+                        <th data-sort="timestamp" class="sortable">
+                            Timestamp <span class="sort-icon">⇅</span>
+                        </th>
+                        <th data-sort="mac_address" class="sortable">
+                            MAC Address <span class="sort-icon">⇅</span>
+                        </th>
+                        <th data-sort="source_ip" class="sortable">
+                            Source IP <span class="sort-icon">⇅</span>
+                        </th>
+                        <th data-sort="message_type" class="sortable">
+                            Message Type <span class="sort-icon">⇅</span>
+                        </th>
+                        <th data-sort="vendor_class" class="sortable">
+                            Vendor Class <span class="sort-icon">⇅</span>
+                        </th>
+                        <th data-sort="xid" class="sortable">
+                            XID <span class="sort-icon">⇅</span>
+                        </th>
+                        <th data-sort="fingerprint" class="sortable">
+                            Fingerprint <span class="sort-icon">⇅</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="logs-body">
+                    <!-- Rows inserted by JavaScript -->
+                </tbody>
+            </table>
+            <div id="loading" class="loading" style="display: none;">Loading...</div>
+            <div id="no-results" class="no-results" style="display: none;">No results found</div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination">
+            <!-- Pagination controls inserted by JavaScript -->
+        </div>
+    </div>
+
+    <script src="/logs.js"></script>
+</body>
+</html>
