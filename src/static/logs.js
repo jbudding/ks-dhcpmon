@@ -111,6 +111,7 @@ function renderLogs(logs) {
             <td class="mac">${log.mac_address}</td>
             <td>${log.source_ip}:${log.source_port}</td>
             <td><span class="badge badge-${log.message_type.toLowerCase()}">${log.message_type}</span></td>
+            <td class="os-info">${log.os_name ? log.os_name + (log.device_class ? ' <span class="device-class">(' + log.device_class + ')</span>' : '') : '-'}</td>
             <td class="vendor">${log.vendor_class || '-'}</td>
             <td class="xid">${log.xid}</td>
             <td class="fingerprint">${log.fingerprint}</td>

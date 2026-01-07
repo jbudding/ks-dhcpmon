@@ -2,6 +2,7 @@ mod dhcp;
 mod logger;
 mod web;
 mod db;
+mod fingerprint;
 
 use anyhow::Result;
 use dhcp::{DhcpPacket, DhcpRequest};

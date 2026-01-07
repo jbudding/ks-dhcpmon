@@ -116,6 +116,7 @@ function renderRequests() {
             <td class="mac">${req.mac_address}</td>
             <td>${req.source_ip}:${req.source_port}</td>
             <td><span class="badge badge-${req.message_type.toLowerCase()}">${req.message_type}</span></td>
+            <td class="os-info">${req.os_name ? req.os_name + (req.device_class ? ' <span class="device-class">(' + req.device_class + ')</span>' : '') : '-'}</td>
             <td class="vendor">${req.vendor_class || '-'}</td>
             <td class="xid">${req.xid}</td>
             <td class="fingerprint">${req.fingerprint}</td>
